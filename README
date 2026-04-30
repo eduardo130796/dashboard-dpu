@@ -1,0 +1,136 @@
+# 🧠 Contract Intelligence Dashboard
+
+## 📌 Sobre o projeto
+
+Este projeto é uma aplicação web para **gestão e monitoramento de contratos administrativos**, com foco em:
+
+* acompanhamento de vencimentos
+* análise de criticidade
+* apoio à tomada de decisão
+* visualização executiva (dashboard)
+
+A aplicação foi construída com foco em uso institucional, permitindo uma visão estratégica e operacional da carteira de contratos.
+
+---
+
+## 🚀 Tecnologias
+
+### Frontend
+
+* React + Vite
+* TailwindCSS
+* Componentização modular
+* Dashboard interativo
+
+### Backend (em desenvolvimento)
+
+* FastAPI (Python)
+* Consumo da API pública de contratos
+* Processamento e normalização de dados
+* Geração de indicadores e alertas
+
+---
+
+## ⚙️ Como rodar o projeto
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+cd nome-do-projeto
+```
+
+---
+
+### 2. Instalar dependências do frontend
+
+```bash
+npm install
+```
+
+---
+
+### 3. Rodar o frontend
+
+```bash
+npm run dev
+```
+
+O projeto estará disponível em:
+
+```
+http://localhost:5173
+```
+
+---
+
+## 🔌 Integração com backend
+
+Atualmente o frontend pode funcionar com **dados simulados (mock)**.
+
+Para integrar com o backend real:
+
+* os endpoints esperados são:
+
+```
+GET /api/contracts
+GET /api/contracts/{id}
+GET /api/contracts/{id}/details
+GET /api/dashboard
+GET /api/alerts
+```
+
+* o frontend deve consumir:
+
+```js
+http://localhost:8000/api/...
+```
+
+---
+
+## 🧱 Estrutura do projeto
+
+```
+/src
+  /components
+  /pages
+  /api
+  /utils
+  /hooks
+
+/backend (em desenvolvimento)
+```
+
+---
+
+## 📊 Funcionalidades
+
+* Painel executivo com KPIs
+* Visualização de contratos por criticidade
+* Controle de vencimentos
+* Central de alertas
+* Página detalhada do contrato (360°)
+* Insights automáticos
+
+---
+
+## 🔧 Próximos passos
+
+* Implementação completa do backend (FastAPI)
+* Integração com API de contratos públicos
+* Cálculo avançado de risco contratual
+* Sistema de alertas automatizados
+* Otimização de performance e cache
+
+---
+
+## 📌 Observações
+
+* Este projeto foi inicialmente prototipado com auxílio de ferramentas de geração de interface, mas atualmente está sendo evoluído para uma arquitetura independente e escalável.
+* O backend será responsável por toda a lógica de negócio, mantendo o frontend focado apenas em apresentação e interação.
+
+---
+
+## 👨‍💻 Autor
+
+Desenvolvido por Eduardo Júnior
