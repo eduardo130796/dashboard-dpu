@@ -1,0 +1,130 @@
+{
+  "name": "Contract",
+  "type": "object",
+  "properties": {
+    "contract_number": {
+      "type": "string",
+      "description": "Unique contract identifier"
+    },
+    "object": {
+      "type": "string",
+      "description": "Contract object/description"
+    },
+    "contractor": {
+      "type": "string",
+      "description": "Contractor company name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "services",
+        "technology",
+        "infrastructure",
+        "consulting",
+        "logistics",
+        "maintenance",
+        "security",
+        "communications"
+      ],
+      "description": "Contract category"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Organizational unit responsible"
+    },
+    "manager": {
+      "type": "string",
+      "description": "Contract manager/fiscal name"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "warning",
+        "critical",
+        "expiring",
+        "expired",
+        "suspended",
+        "draft"
+      ],
+      "default": "active",
+      "description": "Contract status"
+    },
+    "criticality": {
+      "type": "string",
+      "enum": [
+        "low",
+        "attention",
+        "critical",
+        "urgent"
+      ],
+      "default": "low",
+      "description": "Criticality level"
+    },
+    "risk_score": {
+      "type": "number",
+      "description": "Risk score 0-100"
+    },
+    "value": {
+      "type": "number",
+      "description": "Total contract value"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Contract start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Contract end date"
+    },
+    "renewal_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Next renewal date"
+    },
+    "operational_impact": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "Operational impact if contract lapses"
+    },
+    "continuity_risk": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Service continuity risk"
+    },
+    "amendments_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of amendments"
+    },
+    "recommended_action": {
+      "type": "string",
+      "description": "Recommended next action"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "is_strategic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a strategic contract"
+    }
+  },
+  "required": [
+    "contract_number",
+    "object",
+    "contractor"
+  ]
+}

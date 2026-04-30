@@ -1,0 +1,64 @@
+{
+  "name": "Alert",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "description": "Related contract ID"
+    },
+    "contract_number": {
+      "type": "string",
+      "description": "Related contract number"
+    },
+    "title": {
+      "type": "string",
+      "description": "Alert title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Alert description"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "green",
+        "yellow",
+        "orange",
+        "red"
+      ],
+      "default": "yellow",
+      "description": "Alert severity level"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "expiration",
+        "overdue_action",
+        "critical_risk",
+        "renewal_deadline",
+        "operational",
+        "compliance"
+      ],
+      "description": "Alert type"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "acknowledged",
+        "resolved",
+        "dismissed"
+      ],
+      "default": "active"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "title",
+    "severity",
+    "type"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "name": "ContractEvent",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "description": "Related contract ID"
+    },
+    "contract_number": {
+      "type": "string",
+      "description": "Related contract number"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "created",
+        "amended",
+        "renewed",
+        "status_change",
+        "risk_escalation",
+        "action_taken",
+        "review",
+        "milestone",
+        "note_added"
+      ],
+      "description": "Type of event"
+    },
+    "title": {
+      "type": "string",
+      "description": "Event title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Event description"
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who performed the action"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "contract_id",
+    "event_type",
+    "title"
+  ]
+}

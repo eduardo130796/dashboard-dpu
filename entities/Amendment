@@ -1,0 +1,57 @@
+{
+  "name": "Amendment",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string",
+      "description": "Related contract ID"
+    },
+    "contract_number": {
+      "type": "string",
+      "description": "Related contract number"
+    },
+    "amendment_number": {
+      "type": "string",
+      "description": "Amendment identifier"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "extension",
+        "value_change",
+        "scope_change",
+        "renewal",
+        "termination",
+        "correction"
+      ],
+      "description": "Type of amendment"
+    },
+    "description": {
+      "type": "string",
+      "description": "Amendment description"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "value_change": {
+      "type": "number",
+      "description": "Value change amount (positive or negative)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "implemented"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "contract_id",
+    "type",
+    "description"
+  ]
+}
