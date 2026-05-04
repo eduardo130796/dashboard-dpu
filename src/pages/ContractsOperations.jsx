@@ -26,11 +26,13 @@ export default function ContractsOperations() {
     let result = [...contracts];
     if (search) {
       const q = search.toLowerCase();
+      const safe = v => (v || '').toLowerCase();
+
       result = result.filter(c => 
-        c.contract_number.toLowerCase().includes(q) ||
-        c.object.toLowerCase().includes(q) ||
-        c.contractor.toLowerCase().includes(q) ||
-        c.manager.toLowerCase().includes(q)
+        safe(c.contract_number).includes(q) ||
+        safe(c.object).includes(q) ||
+        safe(c.contractor).includes(q) ||
+        safe(c.manager).includes(q)
       );
     }
     if (statusFilter !== 'all') result = result.filter(c => c.status === statusFilter);
@@ -44,7 +46,9 @@ export default function ContractsOperations() {
         bVal = getDaysRemaining(b.end_date);
       }
       if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      else if (aVal == null) aVal = '';
       if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+      else if (bVal == null) bVal = '';
       if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
       return 0;
@@ -149,9 +153,9 @@ export default function ContractsOperations() {
               </thead>
               <tbody>
                 {filtered.map(c => {
-                  const days = getDaysRemaining(c.end_date);
+                  const days = c.end_date ? getDaysRemaining(c.end_date) : null;
                   return (
-                    <tr key={c.contract_number} className="border-b border-border/50 hover:bg-accent/20 transition-colors">
+                    <tr key={`${c.contract_number}-${c.start_date}-${c.contractor}`} className="border-b border-border/50 hover:bg-accent/20 transition-colors">
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs font-medium text-primary">{c.contract_number}</span>
                       </td>
@@ -159,13 +163,24 @@ export default function ContractsOperations() {
                         <span className="text-xs truncate block">{c.object}</span>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{c.contractor}</td>
-                      <td className="px-4 py-3 text-xs tabular-nums">{format(parseISO(c.end_date), 'MMM dd, yyyy')}</td>
+                      <td className="px-4 py-3 text-xs tabular-nums">
+                        {c.end_date
+                          ? (() => {
+                              try {
+                                const d = parseISO(c.end_date);
+                                return isNaN(d) ? '-' : format(d, 'MMM dd, yyyy');
+                              } catch {
+                                return '-';
+                              }
+                            })()
+                          : '-'}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={cn("text-xs font-semibold tabular-nums", days <= 30 ? 'text-red-500' : days <= 60 ? 'text-orange-500' : days <= 90 ? 'text-amber-400' : 'text-foreground')}>
                           {days > 0 ? days : 'Vencido'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">{c.manager}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{c.manager || '-'}</td>
                       <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                       <td className="px-4 py-3"><RiskScoreBar score={c.risk_score} size="sm" /></td>
                       <td className="px-4 py-3">
@@ -192,7 +207,7 @@ export default function ContractsOperations() {
                 </div>
                 <div className="space-y-2">
                   {items.slice(0, 8).map(c => (
-                    <Link key={c.contract_number} to={`/contract/${encodeURIComponent(c.contract_number)}`} className="block p-3 rounded-lg bg-accent/30 hover:bg-accent/60 transition-colors">
+                    <Link key={`${c.contract_number}-${c.start_date}-${c.contractor}`} to={`/contract/${encodeURIComponent(c.contract_number)}`} className="block p-3 rounded-lg bg-accent/30 hover:bg-accent/60 transition-colors">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-mono text-primary">{c.contract_number}</span>
                         <CriticalityBadge criticality={c.criticality} />

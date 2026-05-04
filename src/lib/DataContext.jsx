@@ -33,13 +33,16 @@ export function DataProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-
+  const API = "https://solid-space-funicular-qx5xr6qvw56h4476-8000.app.github.dev";
   useEffect(() => {
     async function loadData() {
       try {
 
-        const res = await fetch("/api/dashboard");
-        console.log(res.status);
+        const res = await fetch(`${API}/api/dashboard`, {
+          credentials: "include",
+        });
+        console.log(res);
+        console.log("FETCH URL:", `${API}/api/dashboard`);
 
         const text = await res.text();
         console.log(text);
