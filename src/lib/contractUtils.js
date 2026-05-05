@@ -47,17 +47,52 @@ export function getCriticalityConfig(criticality) {
   return configs[criticality] || configs.low;
 }
 
+function normalizeStatus(status) {
+  if (status === "ativo_com_execucao_no_ano") {
+    return "ativo_operacional";
+  }
+
+  if (status === "vencido_com_execucao_no_ano") {
+    return "vencido_com_execucao_recente";
+  }
+
+  return status;
+}
+
 export function getStatusConfig(status) {
+  const normalized = normalizeStatus(status);
+
   const configs = {
-    active: { label: 'Ativo', color: 'text-emerald-500', bg: 'bg-emerald-500/10 border-emerald-500/20' },
-    warning: { label: 'Atenção', color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20' },
-    critical: { label: 'Crítico', color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20' },
-    expiring: { label: 'A Vencer', color: 'text-red-500', bg: 'bg-red-500/10 border-red-500/20' },
-    expired: { label: 'Vencido', color: 'text-red-700', bg: 'bg-red-700/10 border-red-700/20' },
-    suspended: { label: 'Suspenso', color: 'text-muted-foreground', bg: 'bg-muted border-border' },
-    draft: { label: 'Rascunho', color: 'text-muted-foreground', bg: 'bg-muted border-border' },
+    ativo_operacional: {
+      label: 'Ativo',
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10 border-emerald-500/20'
+    },
+
+    ativo_sem_execucao: {
+      label: 'Ativo (sem execução)',
+      color: 'text-amber-400',
+      bg: 'bg-amber-400/10 border-amber-400/20'
+    },
+
+    vencido_com_execucao_recente: {
+      label: 'Vencido (em execução)',
+      color: 'text-orange-500',
+      bg: 'bg-orange-500/10 border-orange-500/20'
+    },
+
+    encerrado: {
+      label: 'Encerrado',
+      color: 'text-red-500',
+      bg: 'bg-red-500/10 border-red-500/20'
+    },
   };
-  return configs[status] || configs.active;
+
+  return configs[normalized] || {
+    label: 'Indefinido',
+    color: 'text-muted-foreground',
+    bg: 'bg-muted border-border'
+  };
 }
 
 export function getRiskColor(score) {

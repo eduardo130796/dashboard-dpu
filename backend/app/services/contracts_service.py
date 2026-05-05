@@ -119,6 +119,7 @@ def enrich_contract(contract):
         "garantias": fetch_safe(links.get("garantias")),
         "responsaveis": fetch_safe(links.get("responsaveis")),
         "historico": fetch_safe(links.get("historico")),
+        "itens": fetch_safe(links.get("itens")),
     }
 
 
@@ -150,7 +151,7 @@ def process_contracts(raw_data):
 # FETCH PRINCIPAL
 # =========================
 
-def fetch_contracts(limit=25):
+def fetch_contracts(limit=100):
     print("🌐 Buscando API...")
 
     try:
@@ -195,12 +196,32 @@ def fetch_contracts(limit=25):
         # 🟢 CONTRATO ATIVO
         # -------------------------
 
-        # só enriquece se não tiver no cache
-        if cid not in cache_map:
+        cached = cache_map.get(cid)
+
+        # 🔒 ARQUIVADOS → NÃO ATUALIZA
+        if cid in archived_ids:
+            if not cached:
+                cache_map[cid] = c
+            continue
+
+        # 🟢 ATIVOS → SEMPRE GARANTIR ENRIQUECIMENTO COMPLETO
+        needs_update = False
+
+        if not cached:
+            needs_update = True
+
+        # 🔥 NOVO CAMPO (ex: itens)
+        elif "itens" not in cached:
+            needs_update = True
+
+        # 🔄 (opcional) se quiser atualizar sempre:
+        # needs_update = True
+
+        if needs_update:
             enriched = enrich_contract(c)
             cache_map[cid] = enriched
         else:
-            enriched = cache_map[cid]
+            enriched = cached
 
         enriched_batch.append(enriched)
 
@@ -254,3 +275,39 @@ def get_contracts_cached():
             return json.load(f)
 
     return fetch_contracts()
+
+def reprocess_from_cache():
+    print("♻️ Reprocessando cache local...")
+
+    raw = load_cache()  # 🔥 usa cache existente
+
+    if not raw:
+        print("❌ Sem cache para reprocessar")
+        return []
+
+    processed = process_contracts(raw)
+
+    active, archived = split_contracts(processed)
+
+    # 🔥 sobrescreve os arquivos corretamente
+    with open(ACTIVE_FILE, "w") as f:
+        json.dump(active, f)
+
+    with open(ARCHIVED_FILE, "w") as f:
+        json.dump(archived, f)
+
+    print(f"✅ Reprocessado | Ativos: {len(active)} | Arquivados: {len(archived)}")
+
+    return active
+
+def get_contract_detail_from_cache(contract_id: int):
+    raw = load_cache()  # 🔥 cache completo
+
+    if not raw:
+        return None
+
+    for c in raw:
+        if str(c.get("id")) == str(contract_id):
+            return c
+
+    return None

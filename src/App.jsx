@@ -45,7 +45,7 @@ const AuthenticatedApp = () => {
           <Route path="/" element={<ExecutiveCockpit />} />
           <Route path="/risk-center" element={<RiskCenter />} />
           <Route path="/contracts" element={<ContractsOperations />} />
-          <Route path="/contract/:contractNumber" element={<Contract360 />} />
+          <Route path="/contract/:id" element={<Contract360 />} />
           <Route path="/alerts" element={<AlertCenter />} />
         </Route>
         <Route path="*" element={<PageNotFound />} />

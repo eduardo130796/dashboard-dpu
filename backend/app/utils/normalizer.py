@@ -55,5 +55,8 @@ def normalize(contract):
                         .get("nome_resumido"),
         "is_strategic": valor >= 5_000_000,
         "amendments_count": 0,
-        "daysRemaining": dias
+        "daysRemaining": dias,
+        # 🔥 NOVOS CAMPOS
+        "process_number": contract.get("processo"),
+        "modality": contract.get("modalidade"),
     }

@@ -21,47 +21,78 @@ export default function ContractsOperations() {
   const [sortField, setSortField] = useState('risk_score');
   const [sortDir, setSortDir] = useState('desc');
   const [view, setView] = useState('table');
+  const safe = (v) => (v || '').toString().toLowerCase();
+
+    const getStatus = (c) => c.analysis?.status_real || c.status || 'unknown';
+
+    const getDaysSafe = (date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      if (isNaN(d)) return null;
+      return Math.floor((d - new Date()) / 86400000);
+    };
 
   const filtered = useMemo(() => {
     let result = [...contracts];
+
     if (search) {
       const q = search.toLowerCase();
-      const safe = v => (v || '').toLowerCase();
 
-      result = result.filter(c => 
+      result = result.filter(c =>
         safe(c.contract_number).includes(q) ||
         safe(c.object).includes(q) ||
         safe(c.contractor).includes(q) ||
-        safe(c.manager).includes(q)
+        safe(c.manager || '').includes(q)
       );
     }
-    if (statusFilter !== 'all') result = result.filter(c => c.status === statusFilter);
-    if (criticalityFilter !== 'all') result = result.filter(c => c.criticality === criticalityFilter);
-    if (categoryFilter !== 'all') result = result.filter(c => c.category === categoryFilter);
-    
+
+    if (statusFilter !== 'all') {
+      result = result.filter(c => getStatus(c) === statusFilter);
+    }
+
+    if (criticalityFilter !== 'all') {
+      result = result.filter(c => c.criticality === criticalityFilter);
+    }
+
+    if (categoryFilter !== 'all') {
+      result = result.filter(c => c.category === categoryFilter);
+    }
+
     result.sort((a, b) => {
-      let aVal = a[sortField], bVal = b[sortField];
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
       if (sortField === 'days_remaining') {
-        aVal = getDaysRemaining(a.end_date);
-        bVal = getDaysRemaining(b.end_date);
+        aVal = getDaysSafe(a.end_date) ?? 9999;
+        bVal = getDaysSafe(b.end_date) ?? 9999;
       }
+
       if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-      else if (aVal == null) aVal = '';
       if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-      else if (bVal == null) bVal = '';
+
+      if (aVal == null) aVal = '';
+      if (bVal == null) bVal = '';
+
       if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
+
     return result;
   }, [contracts, search, statusFilter, criticalityFilter, categoryFilter, sortField, sortDir]);
-
+  
+  
   const toggleSort = (field) => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortField(field); setSortDir('desc'); }
   };
 
-  const kanbanStatuses = ['active', 'warning', 'critical', 'expiring'];
+  const kanbanStatuses = [
+  'ativo_operacional',
+  'ativo_sem_execucao',
+  'vencido_com_execucao_recente',
+  'encerrado'
+];
 
   if (loading) return <LoadingOverlay />;
   if (error)   return <ErrorState message={error} />;
@@ -93,11 +124,10 @@ export default function ContractsOperations() {
           <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as Situações</SelectItem>
-            <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="warning">Atenção</SelectItem>
-            <SelectItem value="critical">Crítico</SelectItem>
-            <SelectItem value="expiring">A Vencer</SelectItem>
-            <SelectItem value="expired">Vencido</SelectItem>
+            <SelectItem value="ativo_operacional">Ativo</SelectItem>
+            <SelectItem value="ativo_sem_execucao">Ativo (sem execução)</SelectItem>
+            <SelectItem value="vencido_com_execucao_recente">Vencido (em execução)</SelectItem>
+            <SelectItem value="encerrado">Encerrado</SelectItem>
           </SelectContent>
         </Select>
         <Select value={criticalityFilter} onValueChange={setCriticalityFilter}>
@@ -153,9 +183,9 @@ export default function ContractsOperations() {
               </thead>
               <tbody>
                 {filtered.map(c => {
-                  const days = c.end_date ? getDaysRemaining(c.end_date) : null;
+                  const days = getDaysSafe(c.end_date);
                   return (
-                    <tr key={`${c.contract_number}-${c.start_date}-${c.contractor}`} className="border-b border-border/50 hover:bg-accent/20 transition-colors">
+                    <tr key={`${c.id}-${c.start_date}-${c.contractor}`} className="border-b border-border/50 hover:bg-accent/20 transition-colors">
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs font-medium text-primary">{c.contract_number}</span>
                       </td>
@@ -176,15 +206,22 @@ export default function ContractsOperations() {
                           : '-'}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={cn("text-xs font-semibold tabular-nums", days <= 30 ? 'text-red-500' : days <= 60 ? 'text-orange-500' : days <= 90 ? 'text-amber-400' : 'text-foreground')}>
-                          {days > 0 ? days : 'Vencido'}
+                        <span className={cn(
+                          "text-xs font-semibold tabular-nums",
+                          days === null ? 'text-muted-foreground' :
+                          days <= 30 ? 'text-red-500' :
+                          days <= 60 ? 'text-orange-500' :
+                          days <= 90 ? 'text-amber-400' :
+                          'text-foreground'
+                        )}>
+                          {days === null ? '-' : days > 0 ? days : 'Vencido'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">{c.manager || '-'}</td>
-                      <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
+                      <td className="px-4 py-3"><StatusBadge status={getStatus(c)} /></td>
                       <td className="px-4 py-3"><RiskScoreBar score={c.risk_score} size="sm" /></td>
                       <td className="px-4 py-3">
-                        <Link to={`/contract/${encodeURIComponent(c.contract_number)}`}>
+                        <Link to={`/contract/${c.id}`}>
                           <ChevronRight className="w-4 h-4 text-muted-foreground hover:text-primary" />
                         </Link>
                       </td>
@@ -198,7 +235,7 @@ export default function ContractsOperations() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {kanbanStatuses.map(status => {
-            const items = filtered.filter(c => c.status === status);
+            const items = filtered.filter(c => getStatus(c) === status);
             return (
               <div key={status} className="bg-card border border-border rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -207,7 +244,7 @@ export default function ContractsOperations() {
                 </div>
                 <div className="space-y-2">
                   {items.slice(0, 8).map(c => (
-                    <Link key={`${c.contract_number}-${c.start_date}-${c.contractor}`} to={`/contract/${encodeURIComponent(c.contract_number)}`} className="block p-3 rounded-lg bg-accent/30 hover:bg-accent/60 transition-colors">
+                    <Link key={`${c.id}-${c.start_date}-${c.contractor}`} to={`/contract/${c.id}`} className="block p-3 rounded-lg bg-accent/30 hover:bg-accent/60 transition-colors">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-mono text-primary">{c.contract_number}</span>
                         <CriticalityBadge criticality={c.criticality} />

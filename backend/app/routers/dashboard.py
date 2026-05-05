@@ -20,7 +20,7 @@ def normalize_list(raw):
 def get_dashboard():
     raw = get_contracts_cached()
 
-    contracts = [normalize(c) for c in raw]
+    contracts = raw
 
     dashboard = build_dashboard(contracts)
     alerts = build_alerts(contracts)

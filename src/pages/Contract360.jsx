@@ -9,22 +9,66 @@ import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Building2, Calendar, User, DollarSign, Shield, Loader2 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useState, useEffect, useMemo } from 'react';
+import ContractInvoices from "@/components/contract/ContractInvoices";
+import ContractFinancial from "@/components/contract/ContractFinancial";
+import { getFinancialSummary } from "@/utils/contract";
+import ContractResponsibles from "@/components/contract/ContractResponsibles";
+import ContractGuarantees from "@/components/contract/ContractGuarantees";
+import ContractItems from "@/components/contract/ContractItems";
+import ContractTimeline from "@/components/contract/ContractTimeline";
+import ContractOverview from "@/components/contract/ContractOverview";
+
+const API = import.meta.env.VITE_API_URL || "https://solid-space-funicular-qx5xr6qvw56h4476-8000.app.github.dev";
 
 export default function Contract360() {
-  const { contractNumber: rawParam } = useParams();
-  const contractNumber = rawParam ? decodeURIComponent(rawParam) : rawParam;
   const { contracts } = useData();
+  const { id } = useParams();
+  const [contractDetail, setContractDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
 
-  const detailLoading = false;
+  useEffect(() => {
+    loadDetail();
 
-  const contract = contracts.find(c => c.contract_number === contractNumber);
+    async function loadDetail() {
+      try {
+        setLoadingDetail(true);
+
+        const res = await fetch(`${API}/api/contracts/${id}`, {
+          credentials: "include",
+        });
+
+        const data = await res.json();
+
+        setContractDetail(data);
+      } catch (e) {
+        console.error("Erro ao carregar detalhe:", e);
+      } finally {
+        setLoadingDetail(false);
+      }
+    }
+  }, [id]);
+
+  const contract = contracts.find(
+    c => String(c.id) === String(id)
+  );
+  const contractFinal = {
+    ...contract,        // base (funciona)
+    ...contractDetail,  // complementa (detalhes)
+  };
+
   const { amendments, events, alerts: allAlerts } = useData();
-  const contractAmendments = amendments.filter(a => a.contract_number === contractNumber);
-  const contractEvents     = events.filter(e => e.contract_number === contractNumber)
-    .sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
-  const contractAlerts     = allAlerts.filter(a => a.contract_number === contractNumber);
+  const contractAmendments = amendments.filter(a => String(a.contract_id) === String(id));
+  
 
-  if (!contract && !detailLoading) {
+  const financialSummary = useMemo(() => {
+    return getFinancialSummary(contractDetail?.empenhos);
+  }, [contractDetail]);
+
+  const contractAlerts     = allAlerts.filter(a => String(a.contract_id) === String(id));
+
+  if (!contract && !loadingDetail) {
     return (
       <div className="p-6 text-center">
         <p className="text-muted-foreground">Contrato não encontrado.</p>
@@ -42,11 +86,13 @@ export default function Contract360() {
     );
   }
 
-  const days        = getDaysRemaining(contract.end_date);
-  const healthScore = Math.max(0, 100 - (contract.risk_score || 0));
+  const days        = getDaysRemaining(contractFinal.end_date);
+  const healthScore = Math.max(0, 100 - (contractFinal.risk_score || 0));
   const financial   = null;
   const scope       = [];
 
+
+  
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-[1400px] mx-auto">
       {/* Header */}
@@ -58,9 +104,9 @@ export default function Contract360() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-xl font-bold text-foreground">{contract.contract_number}</h1>
-              <StatusBadge status={contract.status} />
+              <StatusBadge status={contract.analysis?.status_real} />
               <CriticalityBadge criticality={contract.criticality} />
-              {detailLoading && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
+              {loadingDetail && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
             </div>
             <p className="text-sm text-muted-foreground">{contract.object}</p>
           </div>
@@ -82,117 +128,63 @@ export default function Contract360() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <InfoCard icon={Building2} label="Fornecedor" value={contract.contractor} />
-        <InfoCard icon={User}      label="Gestor"    value={contract.manager !== '—' ? contract.manager : (detailLoading ? '…' : '—')} />
+        <InfoCard icon={User}      label="Gestor"    value={contract.manager !== '—' ? contract.manager : (loadingDetail ? '…' : '—')} />
         <InfoCard icon={DollarSign} label="Valor"     value={formatCurrency(contract.value)} />
         <InfoCard icon={Calendar}  label="Início"      value={contract.start_date ? format(parseISO(contract.start_date), 'dd/MM/yyyy') : '—'} />
-        <InfoCard icon={Calendar}  label="Fim"        value={contract.end_date   ? format(parseISO(contract.end_date),   'dd/MM/yyyy') : '—'} />
+        <InfoCard icon={Calendar}  label="Fim"        value={contractFinal.end_date   ? format(parseISO(contractFinal.end_date),   'dd/MM/yyyy') : '—'} />
         <InfoCard icon={Shield}    label="Pontuação de Risco" value={`${contract.risk_score}/100`} />
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-accent/50">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="timeline">Histórico</TabsTrigger>
+          <TabsTrigger value="financial">Empenhos</TabsTrigger>
+          <TabsTrigger value="invoices">Faturas</TabsTrigger>
+          <TabsTrigger value="responsibles">Responsáveis</TabsTrigger>
+          <TabsTrigger value="guarantees">Garantia</TabsTrigger>
+          <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="risks">Riscos</TabsTrigger>
           <TabsTrigger value="amendments">Aditivos</TabsTrigger>
           <TabsTrigger value="actions">Ações</TabsTrigger>
         </TabsList>
 
         {/* ── OVERVIEW ── */}
-        <TabsContent value="overview" className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-              <h3 className="text-sm font-semibold">Detalhes do Contrato</h3>
-              <div className="space-y-3">
-                <DetailRow label="Categoria"          value={contract.category} />
-                <DetailRow label="Unidade"              value={contract.unit} />
-                <DetailRow label="Modalidade"        value={contract._modalidade || '—'} />
-                <DetailRow label="Processo"          value={contract._processo || '—'} />
-                <DetailRow label="Situação"          value={contract._situacao || '—'} />
-                <DetailRow label="Impacto Operacional" value={contract.operational_impact} />
-                <DetailRow label="Risco de Continuidade"   value={contract.continuity_risk} />
-                <DetailRow label="Estratégico"         value={contract.is_strategic ? 'Sim' : 'Não'} />
-                <DetailRow label="Aditivos"        value={String(contract.amendments_count)} />
-              </div>
-            </div>
-
-            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-              <h3 className="text-sm font-semibold">Suporte à Decisão</h3>
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                <p className="text-xs font-medium text-primary mb-1">Ação Recomendada</p>
-                <p className="text-sm text-foreground">{contract.recommended_action}</p>
-              </div>
-              <div className="space-y-3">
-                <DetailRow label="Pontuação de Risco"   value={<RiskScoreBar score={contract.risk_score} />} />
-                <DetailRow label="Vencimento"   value={days !== null ? (days > 0 ? `${days} dias restantes` : 'Vencido') : '—'} />
-                <DetailRow label="Alertas Ativos" value={String(contractAlerts.filter(a => a.status === 'active').length)} />
-              </div>
-
-              {/* Financial summary from empenhos */}
-              {financial && (
-                <div className="mt-3 space-y-2 border-t border-border pt-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Execução Financeira</p>
-                  <DetailRow label="Empenhado"  value={formatCompactCurrency(financial.totalEmpenhado)} />
-                  <DetailRow label="Liquidado"  value={formatCompactCurrency(financial.totalLiquidado)} />
-                  <DetailRow label="Pago"       value={formatCompactCurrency(financial.totalPago)} />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Scope items */}
-          {scope.length > 0 && (
-            <div className="bg-card border border-border rounded-xl p-5">
-              <h3 className="text-sm font-semibold mb-3">Escopo / Itens</h3>
-              <div className="space-y-2">
-                {scope.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-accent/30">
-                    <span className="text-xs text-foreground">{item.description}</span>
-                    <span className="text-xs font-medium text-foreground">{formatCurrency(item.total)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <TabsContent value="overview" className="mt-4">
+          <ContractOverview contract={contractFinal} />
         </TabsContent>
 
         {/* ── TIMELINE ── */}
         <TabsContent value="timeline" className="mt-4">
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="text-sm font-semibold mb-4">Linha do Tempo</h3>
-            {detailLoading && contractEvents.length === 0 ? (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="w-4 h-4 animate-spin" /> Carregando histórico…
-              </div>
-            ) : contractEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum evento registrado.</p>
-            ) : (
-              <div className="space-y-0">
-                {contractEvents.map((event, i) => (
-                  <div key={i} className="flex gap-3 pb-4 last:pb-0">
-                    <div className="flex flex-col items-center">
-                      <div className="w-2.5 h-2.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                      {i < contractEvents.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
-                    </div>
-                    <div className="pb-2">
-                      <p className="text-sm font-medium text-foreground">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">{event.description}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {event.event_date && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {format(parseISO(event.event_date), 'dd/MM/yyyy')}
-                          </span>
-                        )}
-                        {event.actor && <span className="text-[10px] text-muted-foreground">por {event.actor}</span>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ContractTimeline
+            contractDetail={contractDetail}
+            loading={loadingDetail}
+          />
         </TabsContent>
+
+        <TabsContent value="financial">
+          <ContractFinancial
+            contractDetail={contractDetail}
+            financialSummary={financialSummary}
+          />
+        </TabsContent>
+
+        <TabsContent value="invoices">
+          <ContractInvoices contractDetail={contractDetail} />
+        </TabsContent>
+
+        <TabsContent value="responsibles">
+          <ContractResponsibles contractDetail={contractDetail} />
+        </TabsContent>
+
+        <TabsContent value="guarantees">
+          <ContractGuarantees contractDetail={contractDetail} />
+        </TabsContent>
+
+        <TabsContent value="items">
+      <ContractItems contractDetail={contractDetail} />
+    </TabsContent>
 
         {/* ── RISKS ── */}
         <TabsContent value="risks" className="mt-4">
@@ -228,7 +220,7 @@ export default function Contract360() {
         <TabsContent value="amendments" className="mt-4">
           <div className="bg-card border border-border rounded-xl p-5">
             <h3 className="text-sm font-semibold mb-4">Histórico de Aditivos ({contractAmendments.length})</h3>
-            {detailLoading && contractAmendments.length === 0 ? (
+            {loadingDetail && contractAmendments.length === 0 ? (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="w-4 h-4 animate-spin" /> Carregando aditivos…
               </div>

@@ -131,13 +131,81 @@ def has_responsavel(contract):
 def has_garantia(contract):
     return bool(contract.get("garantias"))
 
+def analyze_items(contract):
+    itens = contract.get("itens") or []
 
+    if not itens:
+        return {
+            "has_items": False,
+            "last_event": None
+        }
+
+    now = datetime.utcnow()
+    ano_atual = now.year
+
+    last_event = None
+
+    for item in itens:
+        historico = item.get("historico_item") or []
+
+        for h in historico:
+            data = safe_parse_date(h.get("data_termo"))
+
+            if not data:
+                continue
+
+            if not last_event or data > last_event["date"]:
+                last_event = {
+                    "date": data,
+                    "type": h.get("tipo_historico")
+                }
+
+    if not last_event:
+        return {
+            "has_items": True,
+            "last_event": None
+        }
+
+    return {
+        "has_items": True,
+        "last_event": {
+            "type": last_event["type"],
+            "date": last_event["date"].strftime("%Y-%m-%d"),
+            "is_current_year": last_event["date"].year == ano_atual
+        }
+    }
+
+def get_recommended_actions(flags, status_real):
+    actions = []
+
+    # 🔴 CRÍTICOS
+    if "sem_responsavel" in flags:
+        actions.append("Designar responsável pelo contrato")
+
+    if "sem_garantia" in flags:
+        actions.append("Regularizar garantia contratual")
+
+    if status_real == "ativo_sem_execucao":
+        actions.append("Verificar execução do contrato")
+
+    if status_real == "vencido_com_execucao_recente":
+        actions.append("Apurar execução após vencimento")
+
+    # 🟡 MÉDIOS
+    if "sem_execucao_no_ano" in flags:
+        actions.append("Avaliar execução no exercício atual")
+
+    if "sem_itens" in flags:
+        actions.append("Revisar itens do contrato")
+
+    return actions
 # =========================
 # ENRICH PRINCIPAL
 # =========================
 
 def enrich(contract):
     execution = analyze_execution(contract)
+    items = analyze_items(contract)
 
     responsavel = has_responsavel(contract)
     garantia = has_garantia(contract)
@@ -152,6 +220,11 @@ def enrich(contract):
     if not garantia:
         flags.append("sem_garantia")
 
+    # 📦 ITENS
+    if not items["has_items"]:
+        flags.append("sem_itens")
+
+
     # 💰 EXECUÇÃO
     if not execution["has_execution_ever"]:
         flags.append("nunca_executado")
@@ -164,13 +237,15 @@ def enrich(contract):
             flags.append("sem_execucao_no_ano")
 
     status_real = get_status_real(contract, execution)
-
+    actions = get_recommended_actions(flags, status_real)
     return {
         "analysis": {
             **execution,
+            **items,
             "has_responsavel": responsavel,
             "has_garantia": garantia,
             "status_real": status_real,
-            "flags": flags
+            "flags": flags,
+            "recommended_actions": actions
         }
     }
